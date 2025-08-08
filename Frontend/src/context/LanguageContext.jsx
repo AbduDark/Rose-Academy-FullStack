@@ -98,7 +98,41 @@ export const LanguageProvider = ({ children }) => {
       'popular': 'الأكثر شعبية',
       'featured': 'مميز',
       'free': 'مجاني',
-      'paid': 'مدفوع'
+      'paid': 'مدفوع',
+      
+      // Theme and UI
+      'dark_mode': 'الوضع الليلي',
+      'light_mode': 'الوضع النهاري',
+      'menu': 'القائمة',
+      'close_menu': 'إغلاق القائمة',
+      'toggle_menu': 'تبديل القائمة',
+      
+      // Status and roles
+      'admin': 'مشرف',
+      'student': 'طالب',
+      'instructor': 'مدرس',
+      'moderator': 'مراقب',
+      'active': 'نشط',
+      'inactive': 'غير نشط',
+      
+      // Actions
+      'view': 'عرض',
+      'edit': 'تعديل',
+      'update': 'تحديث',
+      'create': 'إنشاء',
+      'add': 'إضافة',
+      'remove': 'إزالة',
+      'confirm': 'تأكيد',
+      'close': 'إغلاق',
+      'open': 'فتح',
+      
+      // Time and dates
+      'today': 'اليوم',
+      'yesterday': 'أمس',
+      'tomorrow': 'غداً',
+      'this_week': 'هذا الأسبوع',
+      'this_month': 'هذا الشهر',
+      'last_updated': 'آخر تحديث'
     },
     en: {
       // Navigation
@@ -182,7 +216,41 @@ export const LanguageProvider = ({ children }) => {
       'popular': 'Popular',
       'featured': 'Featured',
       'free': 'Free',
-      'paid': 'Paid'
+      'paid': 'Paid',
+      
+      // Theme and UI
+      'dark_mode': 'Dark Mode',
+      'light_mode': 'Light Mode',
+      'menu': 'Menu',
+      'close_menu': 'Close Menu',
+      'toggle_menu': 'Toggle Menu',
+      
+      // Status and roles
+      'admin': 'Admin',
+      'student': 'Student',
+      'instructor': 'Instructor',
+      'moderator': 'Moderator',
+      'active': 'Active',
+      'inactive': 'Inactive',
+      
+      // Actions
+      'view': 'View',
+      'edit': 'Edit',
+      'update': 'Update',
+      'create': 'Create',
+      'add': 'Add',
+      'remove': 'Remove',
+      'confirm': 'Confirm',
+      'close': 'Close',
+      'open': 'Open',
+      
+      // Time and dates
+      'today': 'Today',
+      'yesterday': 'Yesterday',
+      'tomorrow': 'Tomorrow',
+      'this_week': 'This Week',
+      'this_month': 'This Month',
+      'last_updated': 'Last Updated'
     }
   };
 

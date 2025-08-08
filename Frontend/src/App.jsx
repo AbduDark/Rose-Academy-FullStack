@@ -1,4 +1,3 @@
-
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import Router from './Router';
@@ -8,7 +7,12 @@ function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <Router />
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+          <Header />
+          <main className="pt-16 lg:pt-18">
+            <AppRouter />
+          </main>
+        </div>
       </AuthProvider>
     </LanguageProvider>
   );
