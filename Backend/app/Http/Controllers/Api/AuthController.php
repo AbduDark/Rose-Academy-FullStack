@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\EmailVerification;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\SendPinMail;
+use App\Mail\SendVerificationLinkMail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
@@ -50,14 +51,16 @@ class AuthController extends Controller
             'device_fingerprint' => $deviceFingerprint,
         ]);
 
-        // إرسال PIN للتحقق من البريد الإلكتروني
-        $pin = rand(100000, 999999);
+        // إرسال رابط للتحقق من البريد الإلكتروني
+        $verificationToken = Str::random(60);
         EmailVerification::updateOrCreate(
             ['email' => $user->email],
-            ['pin' => $pin, 'expires_at' => now()->addMinutes(5)]
+            ['pin' => $verificationToken, 'expires_at' => now()->addMinutes(30)]
         );
 
-        Mail::to($user->email)->send(new SendPinMail($pin));
+        // إرسال رابط التحقق
+        $verificationLink = url('/api/auth/verify-email-link/' . $verificationToken);
+        Mail::to($user->email)->send(new SendVerificationLinkMail($verificationLink));
 
         $token = $user->createToken('auth_token')->plainTextToken;
         
@@ -335,6 +338,44 @@ class AuthController extends Controller
         ]);
 
         return response()->json(['message' => __('messages.auth.email_verified_successfully')]);
+    }
+
+    public function verifyEmailByLink($token)
+    {
+        $verification = EmailVerification::where('pin', $token)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$verification) {
+            return response()->json([
+                'message' => 'رابط التحقق غير صالح أو منتهي الصلاحية',
+                'success' => false
+            ], 422);
+        }
+
+        $user = User::where('email', $verification->email)->first();
+        
+        if (!$user) {
+            return response()->json([
+                'message' => 'المستخدم غير موجود',
+                'success' => false
+            ], 404);
+        }
+
+        $user->email_verified_at = now();
+        $user->active_session_id = null;
+        $user->device_fingerprint = null;
+        $user->save();
+
+        $verification->delete();
+
+        Log::channel('security')->info('Email verified via link', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+        ]);
+
+        // إعادة توجيه لصفحة تأكيد نجح التحقق
+        return redirect()->to('/verify-success.html');
     }
 
     public function resetPassword(Request $request)

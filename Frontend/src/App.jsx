@@ -10,6 +10,7 @@ import AuthPage from "./pages/AuthPage";
 import LessonPage from "./pages/LessonPage";
 import AdminPage from "./pages/AdminPage";
 import StudentDashboardPage from './pages/StudentDashboardPage';
+import { AuthProvider } from './context/AuthContext';
 // import { AuthContext } from './context/AuthContext';
 // import SubscriptionsPage from './pages/SubscriptionsPage';
 // import NotFoundPage from './pages/NotFoundPage';
@@ -188,4 +189,17 @@ const Router = () => {
   );
 };
 
-export default Router;
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+</Routes>
+        </div>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+export default App;
