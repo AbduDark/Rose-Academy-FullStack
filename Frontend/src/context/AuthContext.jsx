@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = 'http://0.0.0.0:8000/api';
+  const API_BASE = 'https://workspace-rose-academy-fullstack-abdudark.replit.app/api';
 
   const getHeaders = () => {
     const language = localStorage.getItem('language') || 'ar';

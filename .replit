@@ -18,7 +18,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Backend && php artisan serve --host=0.0.0.0 --port=8000"
+args = "cd Backend && composer install && php artisan serve --host=0.0.0.0 --port=8000"
 
 [[workflows.workflow]]
 name = "Start Frontend"
@@ -27,4 +27,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Frontend && npm run dev -- --host 0.0.0.0 --port 5000"
+args = "cd Frontend && npm install && npm run dev -- --host 0.0.0.0 --port=5000"
