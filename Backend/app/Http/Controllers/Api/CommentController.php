@@ -1,70 +1,97 @@
+
 <?php
 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Helpers\ResponseHelper;
 use App\Models\Comment;
+use App\Models\Course;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class CommentController extends Controller
 {
-    public function index($lessonId)
+    public function index($courseId)
     {
-        $comments = Comment::with('user:id,name,profile_image')
-            ->where('lesson_id', $lessonId)
-            ->where('is_approved', true)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $course = Course::find($courseId);
+        if (!$course) {
+            return ResponseHelper::notFound(__('messages.courses.not_found'));
+        }
 
-        return response()->json($comments);
+        $comments = Comment::where('course_id', $courseId)
+                          ->with('user:id,name')
+                          ->orderBy('created_at', 'desc')
+                          ->paginate(10);
+
+        return ResponseHelper::success('💬 ' . __('messages.comments.list_retrieved'), $comments);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, $courseId)
     {
-        $request->validate([
-            'lesson_id' => 'required|exists:lessons,id',
-            'content' => 'required|string|max:1000',
+        $course = Course::find($courseId);
+        if (!$course) {
+            return ResponseHelper::notFound(__('messages.courses.not_found'));
+        }
+
+        $validator = Validator::make($request->all(), [
+            'comment' => 'required|string|max:1000'
         ]);
+
+        if ($validator->fails()) {
+            return ResponseHelper::validationError($validator->errors());
+        }
 
         $comment = Comment::create([
             'user_id' => $request->user()->id,
-            'lesson_id' => $request->lesson_id,
-            'content' => $request->content,
-            'is_approved' => false, // Requires admin approval
+            'course_id' => $courseId,
+            'comment' => $request->comment
         ]);
 
-        return response()->json([
-            'message' => 'Comment submitted successfully. It will be visible after approval.',
-            'comment' => $comment
-        ], 201);
+        $comment->load('user:id,name');
+
+        return ResponseHelper::success(__('messages.comments.created_successfully') . ' 💭', $comment, 201);
     }
 
-    public function approve($id)
+    public function update(Request $request, $id)
     {
-        $comment = Comment::findOrFail($id);
-        $comment->update(['is_approved' => true]);
+        $comment = Comment::find($id);
 
-        return response()->json([
-            'message' => 'Comment approved successfully',
-            'comment' => $comment
+        if (!$comment) {
+            return ResponseHelper::notFound(__('messages.comments.not_found'));
+        }
+
+        if ($comment->user_id !== $request->user()->id && $request->user()->role !== 'admin') {
+            return ResponseHelper::unauthorized();
+        }
+
+        $validator = Validator::make($request->all(), [
+            'comment' => 'required|string|max:1000'
         ]);
+
+        if ($validator->fails()) {
+            return ResponseHelper::validationError($validator->errors());
+        }
+
+        $comment->update(['comment' => $request->comment]);
+
+        return ResponseHelper::success(__('messages.comments.updated_successfully') . ' ✏️', $comment);
     }
 
-    public function reject($id)
+    public function destroy(Request $request, $id)
     {
-        $comment = Comment::findOrFail($id);
+        $comment = Comment::find($id);
+
+        if (!$comment) {
+            return ResponseHelper::notFound(__('messages.comments.not_found'));
+        }
+
+        if ($comment->user_id !== $request->user()->id && $request->user()->role !== 'admin') {
+            return ResponseHelper::unauthorized();
+        }
+
         $comment->delete();
 
-        return response()->json(['message' => 'Comment rejected and deleted']);
-    }
-
-    public function pending()
-    {
-        $comments = Comment::with(['user:id,name,profile_image', 'lesson.course'])
-            ->where('is_approved', false)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json($comments);
+        return ResponseHelper::success(__('messages.comments.deleted_successfully') . ' 🗑️');
     }
 }

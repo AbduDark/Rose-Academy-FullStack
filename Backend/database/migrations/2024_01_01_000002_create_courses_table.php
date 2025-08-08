@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -12,16 +11,11 @@ return new class extends Migration
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->text('description');
-            $table->string('image')->nullable();
+            $table->string('auto_image')->nullable(); // للصور التلقائية
             $table->decimal('price', 8, 2);
-            $table->enum('level', ['beginner', 'intermediate', 'advanced']);
-            $table->enum('target_gender', ['male', 'female', 'both'])->default('both');
-            $table->boolean('is_active')->default(true);
-            $table->integer('duration_hours')->default(0);
-            $table->text('requirements')->nullable();
-            $table->string('instructor_name')->nullable();
-            $table->string('language', 10)->default('ar');
+            $table->text('description');
+            $table->enum('gender', ['male', 'female', 'both'])->default('both');
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
     }

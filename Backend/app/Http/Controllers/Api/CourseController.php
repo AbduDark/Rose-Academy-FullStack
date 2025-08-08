@@ -1,163 +1,243 @@
+
 <?php
 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Helpers\ResponseHelper;
+use App\Http\Services\CourseImageService;
 use App\Models\Course;
+use App\Models\Subscription;
+use App\Models\Rating;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Resources\CourseResource;
 
 class CourseController extends Controller
 {
+    protected $imageService;
+
+    public function __construct(CourseImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
     public function index(Request $request)
     {
-        try {
-            $query = Course::query()->where('is_active', true);
+        $query = Course::query();
 
-            // Search functionality
-            if ($request->has('search')) {
-                $search = $request->get('search');
-                $query->where(function($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhere('instructor_name', 'like', "%{$search}%");
-                });
-            }
-
-            // Filter by level
-            if ($request->has('level')) {
-                $query->where('level', $request->get('level'));
-            }
-
-            // Filter by language
-            if ($request->has('language')) {
-                $query->where('language', $request->get('language'));
-            }
-
-            // Filter by price range
-            if ($request->has('min_price')) {
-                $query->where('price', '>=', $request->get('min_price'));
-            }
-            if ($request->has('max_price')) {
-                $query->where('price', '<=', $request->get('max_price'));
-            }
-
-            // Sort options
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortOrder = $request->get('sort_order', 'desc');
-
-            if (in_array($sortBy, ['title', 'price', 'created_at', 'duration_hours'])) {
-                $query->orderBy($sortBy, $sortOrder);
-            }
-
-            $courses = $query->with(['ratings'])
-                           ->withCount('lessons')
-                           ->paginate($request->get('per_page', 10));
-
-            return response()->json([
-                'success' => true,
-                'data' => CourseResource::collection($courses),
-                'message' => __('messages.courses_retrieved')
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => __('messages.server_error'),
-                'error' => config('app.debug') ? $e->getMessage() : null
-            ], 500);
+        // فلترة حسب الجنس
+        if ($request->gender) {
+            $query->where(function($q) use ($request) {
+                $q->where('gender', $request->gender)
+                  ->orWhere('gender', 'both');
+            });
         }
+
+        // فلترة حسب الفئة
+        if ($request->category) {
+            $query->where('category', $request->category);
+        }
+
+        // البحث
+        if ($request->search) {
+            $query->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('description', 'like', '%' . $request->search . '%');
+        }
+
+        // الترتيب
+        $sortBy = $request->sort_by ?? 'created_at';
+        $sortOrder = $request->sort_order ?? 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        $courses = $query->with(['instructor', 'ratings'])
+                        ->paginate($request->per_page ?? 12);
+
+        // إضافة بيانات إضافية لكل كورس
+        $courses->getCollection()->transform(function ($course) use ($request) {
+            $course->average_rating = $course->ratings->avg('rating') ?? 0;
+            $course->ratings_count = $course->ratings->count();
+            
+            // فحص الاشتراك إذا كان المستخدم مسجل دخول
+            if ($request->user()) {
+                $course->is_subscribed = Subscription::where('user_id', $request->user()->id)
+                    ->where('course_id', $course->id)
+                    ->exists();
+            }
+
+            return $course;
+        });
+
+        return ResponseHelper::success('📚 ' . __('messages.courses.list_retrieved'), $courses);
     }
 
     public function show($id, Request $request)
     {
-        $course = Course::with(['lessons', 'ratings.user'])->findOrFail($id);
+        $course = Course::with(['instructor', 'ratings.user', 'lessons'])
+                       ->find($id);
 
-        // Check gender access
-        if ($request->user()) {
-            $userGender = $request->user()->gender;
-            if ($course->target_gender !== 'both' && $course->target_gender !== $userGender) {
-                return response()->json(['message' => 'Access denied'], 403);
-            }
-        } elseif ($course->target_gender !== 'both') {
-            return response()->json(['message' => 'Login required'], 401);
+        if (!$course) {
+            return ResponseHelper::notFound(__('messages.courses.not_found'));
         }
 
-        $course->average_rating = $course->averageRating();
-        $course->total_ratings = $course->totalRatings();
+        // إضافة بيانات إضافية
+        $course->average_rating = $course->ratings->avg('rating') ?? 0;
+        $course->ratings_count = $course->ratings->count();
+        $course->lessons_count = $course->lessons->count();
 
+        // فحص الاشتراك
         if ($request->user()) {
-            $course->is_subscribed = $request->user()->isSubscribedTo($id);
-            $course->is_favorited = $request->user()->hasFavorited($id);
+            $course->is_subscribed = Subscription::where('user_id', $request->user()->id)
+                ->where('course_id', $course->id)
+                ->exists();
         }
 
-        return response()->json($course);
+        return ResponseHelper::success('👁️ ' . __('messages.courses.details_retrieved'), $course);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
-            'level' => 'required|in:beginner,intermediate,advanced',
-            'target_gender' => 'required|in:male,female,both',
-            'duration_hours' => 'nullable|integer|min:0',
-            'requirements' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
+            'category' => 'required|string',
+            'gender' => 'required|in:male,female,both',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
-        $data = $request->all();
-
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('courses', 'public');
+        if ($validator->fails()) {
+            return ResponseHelper::validationError($validator->errors());
         }
 
-        $course = Course::create($data);
+        $courseData = $request->only(['title', 'description', 'price', 'category', 'gender']);
+        $courseData['instructor_id'] = $request->user()->id;
 
-        return response()->json($course, 201);
+        // رفع الصورة إذا تم توفيرها
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('courses', 'public');
+            $courseData['image'] = $imagePath;
+        }
+
+        $course = Course::create($courseData);
+
+        // إنشاء صورة تلقائية
+        if (!$request->hasFile('image')) {
+            $autoImagePath = $this->imageService->generateCourseImage($course);
+            $course->update(['auto_image' => $autoImagePath]);
+        }
+
+        return ResponseHelper::success(__('messages.courses.created_successfully') . ' 🎉', $course, 201);
     }
 
     public function update(Request $request, $id)
     {
-        $course = Course::findOrFail($id);
+        $course = Course::find($id);
 
-        $request->validate([
+        if (!$course) {
+            return ResponseHelper::notFound(__('messages.courses.not_found'));
+        }
+
+        // فحص الصلاحية
+        if ($request->user()->role !== 'admin' && $course->instructor_id !== $request->user()->id) {
+            return ResponseHelper::unauthorized();
+        }
+
+        $validator = Validator::make($request->all(), [
             'title' => 'sometimes|string|max:255',
             'description' => 'sometimes|string',
             'price' => 'sometimes|numeric|min:0',
-            'level' => 'sometimes|in:beginner,intermediate,advanced',
-            'duration_hours' => 'nullable|integer|min:0',
-            'requirements' => 'nullable|string',  
-            'image' => 'nullable|image|max:2048',
-            'is_active' => 'sometimes|boolean',
+            'category' => 'sometimes|string',
+            'gender' => 'sometimes|in:male,female,both',
+            'status' => 'sometimes|in:active,inactive',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
-        $data = $request->all();
+        if ($validator->fails()) {
+            return ResponseHelper::validationError($validator->errors());
+        }
 
+        $updateData = $request->only(['title', 'description', 'price', 'category', 'gender', 'status']);
+
+        // رفع صورة جديدة
         if ($request->hasFile('image')) {
+            // حذف الصورة القديمة
             if ($course->image) {
                 Storage::disk('public')->delete($course->image);
             }
-            $data['image'] = $request->file('image')->store('courses', 'public');
+            $updateData['image'] = $request->file('image')->store('courses', 'public');
         }
 
-        $course->update($data);
+        $course->update($updateData);
 
-        return response()->json($course);
+        // إعادة إنشاء الصورة التلقائية إذا تغيرت البيانات المهمة
+        if (isset($updateData['title']) || isset($updateData['price']) || isset($updateData['description'])) {
+            if ($course->auto_image) {
+                Storage::disk('public')->delete($course->auto_image);
+            }
+            $autoImagePath = $this->imageService->generateCourseImage($course);
+            $course->update(['auto_image' => $autoImagePath]);
+        }
+
+        return ResponseHelper::success(__('messages.courses.updated_successfully') . ' ✨', $course);
     }
 
-    public function destroy($id)
+    public function destroy($id, Request $request)
     {
-        $course = Course::findOrFail($id);
+        $course = Course::find($id);
 
+        if (!$course) {
+            return ResponseHelper::notFound(__('messages.courses.not_found'));
+        }
+
+        // فحص الصلاحية
+        if ($request->user()->role !== 'admin' && $course->instructor_id !== $request->user()->id) {
+            return ResponseHelper::unauthorized();
+        }
+
+        // حذف الصور
         if ($course->image) {
             Storage::disk('public')->delete($course->image);
+        }
+        if ($course->auto_image) {
+            Storage::disk('public')->delete($course->auto_image);
         }
 
         $course->delete();
 
-        return response()->json(['message' => 'Course deleted successfully']);
+        return ResponseHelper::success(__('messages.courses.deleted_successfully') . ' 🗑️');
+    }
+
+    public function getMyCourses(Request $request)
+    {
+        $courses = Course::where('instructor_id', $request->user()->id)
+                        ->with(['ratings'])
+                        ->get();
+
+        $courses->transform(function ($course) {
+            $course->average_rating = $course->ratings->avg('rating') ?? 0;
+            $course->ratings_count = $course->ratings->count();
+            $course->subscribers_count = Subscription::where('course_id', $course->id)->count();
+            return $course;
+        });
+
+        return ResponseHelper::success('👨‍🏫 ' . __('messages.courses.instructor_courses'), $courses);
+    }
+
+    public function getSubscribedCourses(Request $request)
+    {
+        $subscriptions = Subscription::where('user_id', $request->user()->id)
+                                   ->with(['course.instructor', 'course.ratings'])
+                                   ->get();
+
+        $courses = $subscriptions->map(function ($subscription) {
+            $course = $subscription->course;
+            $course->average_rating = $course->ratings->avg('rating') ?? 0;
+            $course->ratings_count = $course->ratings->count();
+            $course->subscription_date = $subscription->created_at;
+            return $course;
+        });
+
+        return ResponseHelper::success('📖 ' . __('messages.courses.subscribed_courses'), $courses);
     }
 }

@@ -11,6 +11,7 @@ import LessonPage from "./pages/LessonPage";
 import AdminPage from "./pages/AdminPage";
 import StudentDashboardPage from './pages/StudentDashboardPage';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext'; // Assuming LanguageProvider is in './context/LanguageContext'
 // import { AuthContext } from './context/AuthContext';
 // import SubscriptionsPage from './pages/SubscriptionsPage';
 // import NotFoundPage from './pages/NotFoundPage';
@@ -191,14 +192,13 @@ const Router = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <LanguageProvider>
+      <AuthProvider>
         <div className="App">
-          <Routes>
-</Routes>
+          <Router />
         </div>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

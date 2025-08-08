@@ -25,6 +25,10 @@ return [
         'created_successfully' => 'Course created successfully',
         'updated_successfully' => 'Course updated successfully',
         'not_found' => 'Course not found',
+        'list_retrieved' => 'Courses list retrieved',
+        'details_retrieved' => 'Course details retrieved',
+        'instructor_courses' => 'My instructor courses',
+        'subscribed_courses' => 'My subscribed courses',
     ],
 
     // Subscription messages
@@ -38,12 +42,18 @@ return [
     'ratings' => [
         'created_successfully' => 'Rating created successfully',
         'updated_successfully' => 'Rating updated successfully',
+        'deleted_successfully' => 'Rating deleted successfully',
+        'not_found' => 'Rating not found',
+        'list_retrieved' => 'Ratings list retrieved',
     ],
 
     // Comment messages
     'comments' => [
         'created_successfully' => 'Comment created successfully',
+        'updated_successfully' => 'Comment updated successfully',
         'deleted_successfully' => 'Comment deleted successfully',
+        'not_found' => 'Comment not found',
+        'list_retrieved' => 'Comments list retrieved',
     ],
 
     // Favorite messages

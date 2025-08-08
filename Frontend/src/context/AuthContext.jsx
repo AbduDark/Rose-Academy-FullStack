@@ -18,16 +18,22 @@ export const AuthProvider = ({ children }) => {
 
   const API_BASE = 'http://0.0.0.0:8000/api';
 
+  const getHeaders = () => {
+    const language = localStorage.getItem('language') || 'ar';
+    return {
+      'Content-Type': 'application/json',
+      'Accept-Language': language,
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  };
+
   // تحقق من التوكن عند تحميل التطبيق
   useEffect(() => {
     const checkAuth = async () => {
       if (token) {
         try {
           const response = await fetch(`${API_BASE}/auth/profile`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+            headers: getHeaders()
           });
           
           if (response.ok) {
@@ -53,9 +59,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: getHeaders(),
         body: JSON.stringify({ email, password })
       });
 

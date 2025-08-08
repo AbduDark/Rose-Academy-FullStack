@@ -25,6 +25,10 @@ return [
         'created_successfully' => 'تم إنشاء الدورة بنجاح',
         'updated_successfully' => 'تم تحديث الدورة بنجاح',
         'not_found' => 'الدورة غير موجودة',
+        'list_retrieved' => 'تم استرجاع قائمة الدورات',
+        'details_retrieved' => 'تم استرجاع تفاصيل الدورة',
+        'instructor_courses' => 'دوراتي كمدرب',
+        'subscribed_courses' => 'الدورات المشترك بها',
     ],
 
     // Subscription messages
@@ -39,12 +43,18 @@ return [
     'ratings' => [
         'created_successfully' => 'تم إضافة التقييم بنجاح',
         'updated_successfully' => 'تم تحديث التقييم بنجاح',
+        'deleted_successfully' => 'تم حذف التقييم بنجاح',
+        'not_found' => 'التقييم غير موجود',
+        'list_retrieved' => 'تم استرجاع قائمة التقييمات',
     ],
 
     // Comment messages
     'comments' => [
         'created_successfully' => 'تم إضافة التعليق بنجاح',
+        'updated_successfully' => 'تم تحديث التعليق بنجاح',
         'deleted_successfully' => 'تم حذف التعليق بنجاح',
+        'not_found' => 'التعليق غير موجود',
+        'list_retrieved' => 'تم استرجاع قائمة التعليقات',
     ],
 
     // Favorite messages
