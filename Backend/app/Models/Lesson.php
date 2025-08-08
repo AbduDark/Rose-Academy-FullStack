@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Lesson extends Model
 {
@@ -28,12 +31,20 @@ class Lesson extends Model
         ];
     }
 
-    public function course()
+    protected function isFree(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => (bool) $value,
+            set: fn ($value) => (bool) $value,
+        );
+    }
+
+    public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
     }
 
-    public function comments()
+    public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
     }

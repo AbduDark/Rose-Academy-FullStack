@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Foundation\Application;
@@ -13,17 +14,30 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [
-            \App\Http\Middleware\LocalizationMiddleware::class,
-            \App\Http\Middleware\SecurityLogMiddleware::class,
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
-        
+
         $middleware->alias([
+            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'check.subscription' => \App\Http\Middleware\CheckSubscription::class,
             'gender.content' => \App\Http\Middleware\GenderContentMiddleware::class,
-            'check.session' => \App\Http\Middleware\CheckSessionMiddleware::class,
+            'localization' => \App\Http\Middleware\LocalizationMiddleware::class,
+            'security.log' => \App\Http\Middleware\SecurityLogMiddleware::class,
             'rate.limit' => \App\Http\Middleware\RateLimitMiddleware::class,
+            'check.session' => \App\Http\Middleware\CheckSessionMiddleware::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\LocalizationMiddleware::class,
+            \App\Http\Middleware\SecurityLogMiddleware::class,
+        ]);
+
+        $middleware->api(append: [
+            \App\Http\Middleware\CorsMiddleware::class,
+            \App\Http\Middleware\LocalizationMiddleware::class,
+            \App\Http\Middleware\SecurityLogMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
