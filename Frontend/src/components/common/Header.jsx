@@ -52,16 +52,16 @@ const Header = () => {
           </nav>
 
           {/* Right Section */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 rtl:space-x-reverse">
             {/* Language Switcher */}
             <div className="relative">
               <button 
-                className="flex items-center space-x-2 text-gray-700 hover:text-pink-600 transition-colors"
+                className="flex items-center space-x-2 rtl:space-x-reverse text-gray-700 hover:text-pink-600 transition-colors bg-gray-100 px-3 py-1 rounded-full"
                 onClick={() => handleLanguageChange(language === 'ar' ? 'en' : 'ar')}
               >
                 <FaGlobe />
-                <span className="text-sm">
-                  {language === 'ar' ? 'العربية' : 'English'}
+                <span className="text-sm font-medium">
+                  {language === 'ar' ? 'English' : 'العربية'}
                 </span>
               </button>
             </div>
@@ -71,47 +71,53 @@ const Header = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-pink-600 transition-colors"
+                  className="flex items-center space-x-2 rtl:space-x-reverse bg-pink-50 border border-pink-200 text-pink-700 hover:bg-pink-100 transition-colors px-4 py-2 rounded-full"
                 >
                   <FaUser />
-                  <span className="hidden sm:block">{user?.name}</span>
+                  <span className="hidden sm:block font-medium">{user?.name}</span>
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                  <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border`}>
+                    <div className="px-4 py-2 border-b bg-gray-50">
+                      <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                      <p className="text-sm text-gray-500">{user?.email}</p>
+                    </div>
                     <a
                       href="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
+                      <FaUser className={`${isRTL ? 'ml-3' : 'mr-3'} text-gray-400`} />
                       {t('profile')}
                     </a>
                     <a
                       href="/dashboard"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
+                      <span className={`${isRTL ? 'ml-3' : 'mr-3'} text-gray-400`}>📊</span>
                       {t('dashboard')}
                     </a>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 border-t"
                     >
-                      <FaSignOutAlt className="inline mr-2" />
+                      <FaSignOutAlt className={`${isRTL ? 'ml-3' : 'mr-3'} text-red-400`} />
                       {t('logout')}
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 rtl:space-x-reverse">
                 <a
                   href="/auth"
-                  className="text-pink-600 hover:text-pink-700 transition-colors"
+                  className="text-pink-600 hover:text-pink-700 transition-colors font-medium px-4 py-2"
                 >
                   {t('login')}
                 </a>
                 <a
-                  href="/auth?tab=register"
-                  className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors"
+                  href="/auth"
+                  className="bg-gradient-to-r from-pink-500 to-pink-600 text-white px-6 py-2 rounded-full hover:from-pink-600 hover:to-pink-700 transition-all duration-300 shadow-md hover:shadow-lg font-medium"
                 >
                   {t('register')}
                 </a>

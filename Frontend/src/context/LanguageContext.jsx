@@ -80,7 +80,25 @@ export const LanguageProvider = ({ children }) => {
       // Language
       'language': 'اللغة',
       'arabic': 'العربية',
-      'english': 'English'
+      'english': 'English',
+      
+      // Additional translations
+      'welcome_user': 'مرحباً بك',
+      'my_courses': 'دوراتي',
+      'settings': 'الإعدادات',
+      'notifications': 'الإشعارات',
+      'help': 'المساعدة',
+      'search': 'بحث',
+      'filter': 'تصفية',
+      'sort': 'ترتيب',
+      'newest': 'الأحدث',
+      'oldest': 'الأقدم',
+      'price_low_high': 'السعر: من الأقل للأعلى',
+      'price_high_low': 'السعر: من الأعلى للأقل',
+      'popular': 'الأكثر شعبية',
+      'featured': 'مميز',
+      'free': 'مجاني',
+      'paid': 'مدفوع'
     },
     en: {
       // Navigation
@@ -146,7 +164,25 @@ export const LanguageProvider = ({ children }) => {
       // Language
       'language': 'Language',
       'arabic': 'العربية',
-      'english': 'English'
+      'english': 'English',
+      
+      // Additional translations
+      'welcome_user': 'Welcome',
+      'my_courses': 'My Courses',
+      'settings': 'Settings',
+      'notifications': 'Notifications',
+      'help': 'Help',
+      'search': 'Search',
+      'filter': 'Filter',
+      'sort': 'Sort',
+      'newest': 'Newest',
+      'oldest': 'Oldest',
+      'price_low_high': 'Price: Low to High',
+      'price_high_low': 'Price: High to Low',
+      'popular': 'Popular',
+      'featured': 'Featured',
+      'free': 'Free',
+      'paid': 'Paid'
     }
   };
 
