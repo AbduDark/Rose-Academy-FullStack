@@ -6,21 +6,25 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Http\Helpers\ResponseHelper;
 
 class RoleMiddleware
 {
-    /**
-     * Handle an incoming request.
-     */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        if (!$request->user()) {
-            return ResponseHelper::unauthorized(__('messages.auth.login_required'));
+        if (!auth()->check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.'
+            ], 401);
         }
 
-        if (!in_array($request->user()->role, $roles)) {
-            return ResponseHelper::unauthorized(__('messages.auth.insufficient_permissions'));
+        $userRole = auth()->user()->role;
+        
+        if (!in_array($userRole, $roles)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden. Required role: ' . implode(', ', $roles)
+            ], 403);
         }
 
         return $next($request);

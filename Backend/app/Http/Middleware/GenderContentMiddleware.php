@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Http\Middleware;
@@ -10,18 +11,18 @@ class GenderContentMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = auth()->user();
-
-        if ($user && $request->has('gender_filter')) {
-            $genderFilter = $request->gender_filter;
-
-            if ($genderFilter !== 'all' && $user->gender !== $genderFilter) {
-                return response()->json([
-                    'message' => 'This content is not available for your gender'
-                ], 403);
-            }
+        if (!auth()->check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.'
+            ], 401);
         }
 
+        $user = auth()->user();
+        
+        // Add gender-based content filtering logic here
+        // This is a placeholder - implement based on your requirements
+        
         return $next($request);
     }
 }

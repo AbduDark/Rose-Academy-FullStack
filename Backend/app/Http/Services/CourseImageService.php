@@ -3,81 +3,74 @@
 
 namespace App\Http\Services;
 
-use Intervention\Image\ImageManagerStatic as Image;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class CourseImageService
 {
-    public static function generateCourseImage($courseData)
+    protected $imageManager;
+
+    public function __construct()
     {
-        // قوالب الصور
-        $templates = [
-            public_path('images/templates/template1.jpg'),
-            public_path('images/templates/template2.jpg'),
-            public_path('images/templates/template3.jpg')
-        ];
+        $this->imageManager = new ImageManager(new Driver());
+    }
+
+    public function uploadAndResize(UploadedFile $file, string $path = 'courses'): string
+    {
+        // Create unique filename
+        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
         
-        // اختر قالب عشوائي
-        $templatePath = $templates[array_rand($templates)];
+        // Read and resize image
+        $image = $this->imageManager->read($file->getPathname());
         
-        // إنشاء صورة افتراضية إذا لم توجد القوالب
-        if (!file_exists($templatePath)) {
-            return self::createDefaultImage($courseData);
+        // Resize to standard course thumbnail size
+        $image = $image->resize(800, 600, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
+        });
+
+        // Save to storage
+        $fullPath = $path . '/' . $filename;
+        Storage::disk('public')->put($fullPath, $image->encode());
+
+        return $fullPath;
+    }
+
+    public function deleteImage(string $path): bool
+    {
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::disk('public')->delete($path);
         }
         
-        // تحميل القالب
-        $image = Image::make($templatePath);
-        
-        // إضافة النصوص
-        $image->text($courseData['title'], 400, 150, function($font) {
-            $font->file(public_path('fonts/NotoSansArabic-Bold.ttf'));
-            $font->size(48);
-            $font->color('#ffffff');
-            $font->align('center');
-        });
-        
-        $image->text($courseData['price'] . ' جنيه', 400, 220, function($font) {
-            $font->file(public_path('fonts/NotoSansArabic-Regular.ttf'));
-            $font->size(32);
-            $font->color('#f39c12');
-            $font->align('center');
-        });
-        
-        $image->text($courseData['description'], 400, 280, function($font) {
-            $font->file(public_path('fonts/NotoSansArabic-Regular.ttf'));
-            $font->size(24);
-            $font->color('#ecf0f1');
-            $font->align('center');
-        });
-        
-        // حفظ الصورة
-        $fileName = 'course_' . time() . '.jpg';
-        $path = public_path('images/courses/' . $fileName);
-        $image->save($path);
-        
-        return 'images/courses/' . $fileName;
+        return false;
     }
-    
-    private static function createDefaultImage($courseData)
+
+    public function updateImage(UploadedFile $newFile, ?string $oldPath = null, string $path = 'courses'): string
     {
-        // إنشاء صورة افتراضية
-        $image = Image::canvas(800, 400, '#3498db');
+        // Delete old image if exists
+        if ($oldPath) {
+            $this->deleteImage($oldPath);
+        }
+
+        // Upload new image
+        return $this->uploadAndResize($newFile, $path);
+    }
+
+    public function resizeExisting(string $imagePath): string
+    {
+        $image = $this->imageManager->read(Storage::disk('public')->path($imagePath));
         
-        $image->text($courseData['title'], 400, 150, function($font) {
-            $font->size(40);
-            $font->color('#ffffff');
-            $font->align('center');
+        // Resize to standard course thumbnail size
+        $image = $image->resize(800, 600, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
         });
-        
-        $image->text($courseData['price'] . ' ج.م', 400, 220, function($font) {
-            $font->size(28);
-            $font->color('#f39c12');
-            $font->align('center');
-        });
-        
-        $fileName = 'course_default_' . time() . '.jpg';
-        $path = public_path('images/courses/' . $fileName);
-        $image->save($path);
-        
-        return 'images/courses/' . $fileName;
+
+        // Save back to storage
+        Storage::disk('public')->put($imagePath, $image->encode());
+
+        return $imagePath;
     }
 }

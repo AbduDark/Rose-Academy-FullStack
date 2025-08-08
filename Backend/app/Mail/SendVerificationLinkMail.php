@@ -4,7 +4,10 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class SendVerificationLinkMail extends Mailable
@@ -18,9 +21,25 @@ class SendVerificationLinkMail extends Mailable
         $this->verificationLink = $verificationLink;
     }
 
-    public function build()
+    public function envelope(): Envelope
     {
-        return $this->subject('تأكيد البريد الإلكتروني - Rose Academy')
-                    ->view('emails.verification-link');
+        return new Envelope(
+            subject: 'Verify Your Email Address',
+        );
+    }
+
+    public function content(): Content
+    {
+        return new Content(
+            view: 'emails.verification-link',
+            with: [
+                'verificationLink' => $this->verificationLink,
+            ],
+        );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

@@ -1,9 +1,11 @@
+
 <?php
 
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Auth;
 
 class LessonResource extends JsonResource
 {
@@ -11,30 +13,19 @@ class LessonResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'course_id' => $this->course_id,
             'title' => $this->title,
             'description' => $this->description,
-            'video_url' => $this->when(
-                $this->is_free || $this->isUserSubscribed(),
-                $this->video_url
-            ),
-            'duration_minutes' => $this->duration_minutes,
+            'video_url' => $this->video_url,
+            'duration' => $this->duration,
             'order' => $this->order,
-            'is_free' => $this->is_free,
-            'can_access' => $this->is_free || $this->isUserSubscribed(),
+            'course_id' => $this->course_id,
             'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+            'can_access' => Auth::check() ? 
+                $this->course->subscriptions()->where('user_id', Auth::id())
+                    ->where('status', 'active')
+                    ->where('expires_at', '>', now())
+                    ->exists() : false,
         ];
-    }
-
-    private function isUserSubscribed(): bool
-    {
-        if (!auth()->check()) {
-            return false;
-        }
-
-        return $this->course->subscriptions()
-            ->where('user_id', auth()->id())
-            ->where('status', 'active')
-            ->exists();
     }
 }
