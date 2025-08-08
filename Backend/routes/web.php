@@ -33,3 +33,8 @@ Route::get('/roadmap', function () {
 Route::get('/verify-email', function () {
     return response()->file(public_path('verify-email.html'));
 });
+
+// إضافة route للـ login لتجنب الخطأ
+Route::get('/login', function () {
+    return response()->json(['message' => 'Please use API login endpoint'], 404);
+})->name('login');

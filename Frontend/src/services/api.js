@@ -1,5 +1,5 @@
 
-const API_BASE_URL = 'https://workspace-rose-academy-fullstack-abdudark.replit.app/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 // Helper function to get headers
 const getHeaders = (includeAuth = true) => {
