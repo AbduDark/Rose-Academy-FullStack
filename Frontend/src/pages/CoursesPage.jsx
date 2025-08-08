@@ -1,25 +1,185 @@
-import React, { useState } from "react";
-import FiltersCourses from "../components/courses/FiltersCourses.jsx";
-import SingleCourse from "../components/courses/SingleCourse.jsx";
+
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { coursesAPI, favoritesAPI } from "../services/api";
+import FiltersCourses from "../components/courses/FiltersCourses";
+import SingleCourse from "../components/courses/SingleCourse";
+import Pagination from "../components/courses/Pagination";
+
 const CoursesPage = () => {
+  const { isAuthenticated } = useAuth();
+  const [courses, setCourses] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [filters, setFilters] = useState({
+    search: '',
+    level: '',
+    category: '',
+    price: '',
+    sort: 'newest'
+  });
+
+  // جلب الكورسات
+  const fetchCourses = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page: currentPage,
+        ...filters
+      };
+      
+      const result = await coursesAPI.getAllCourses(params);
+      
+      if (result.success) {
+        setCourses(result.data.data || []);
+        setTotalPages(result.data.last_page || 1);
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      setError('حدث خطأ في جلب الكورسات');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // جلب المفضلات إذا كان المستخدم مسجل دخول
+  const fetchFavorites = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const result = await favoritesAPI.getFavorites();
+      if (result.success) {
+        setFavorites(result.data.map(fav => fav.course_id));
+      }
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCourses();
+    fetchFavorites();
+  }, [currentPage, filters, isAuthenticated]);
+
+  // التعامل مع تغيير الفلاتر
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // العودة للصفحة الأولى عند تغيير الفلتر
+  };
+
+  // التعامل مع إضافة/إزالة من المفضلات
+  const handleToggleFavorite = async (courseId) => {
+    if (!isAuthenticated) {
+      alert('يجب تسجيل الدخول لإضافة الكورسات للمفضلة');
+      return;
+    }
+
+    try {
+      const isFavorite = favorites.includes(courseId);
+      
+      if (isFavorite) {
+        await favoritesAPI.removeFromFavorites(courseId);
+        setFavorites(favorites.filter(id => id !== courseId));
+      } else {
+        await favoritesAPI.addToFavorites(courseId);
+        setFavorites([...favorites, courseId]);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  // التعامل مع الاشتراك في الكورس
+  const handleSubscribeToCourse = async (courseId) => {
+    if (!isAuthenticated) {
+      alert('يجب تسجيل الدخول للاشتراك في الكورسات');
+      return;
+    }
+
+    try {
+      const result = await coursesAPI.subscribeToCourse(courseId);
+      if (result.success) {
+        alert('تم الاشتراك في الكورس بنجاح!');
+        // تحديث قائمة الكورسات
+        fetchCourses();
+      } else {
+        alert(result.error || 'فشل في الاشتراك');
+      }
+    } catch (error) {
+      console.error('Error subscribing to course:', error);
+      alert('حدث خطأ أثناء الاشتراك');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-blue-50/10 min-h-screen">
-      {/* Page Header */}
-      <FiltersCourses />
-      {/* Courses Section */}
-      <SingleCourse />
-      {/* Bottom Wave */}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 1440 320"
-        className="w-full"
-      >
-        <path
-          fill="#ffffff"
-          fillOpacity="1"
-          d="M0,224L30,197.3C60,171,120,117,180,128C240,139,300,213,360,250.7C420,288,480,288,540,250.7C600,213,660,139,720,128C780,117,840,171,900,192C960,213,1020,203,1080,181.3C1140,160,1200,128,1260,128C1320,128,1380,160,1410,176L1440,192L1440,320L1410,320C1380,320,1320,320,1260,320C1200,320,1140,320,1080,320C1020,320,960,320,900,320C840,320,780,320,720,320C660,320,600,320,540,320C480,320,420,320,360,320C300,320,240,320,180,320C120,320,60,320,30,320L0,320Z"
-        />
-      </svg>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Filters Sidebar */}
+        <aside className="lg:w-1/4">
+          <FiltersCourses filters={filters} onFilterChange={handleFilterChange} />
+        </aside>
+
+        {/* Main Content */}
+        <main className="lg:w-3/4">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">جميع الكورسات</h1>
+            <p className="text-gray-600">
+              تم العثور على {courses.length} كورس
+            </p>
+          </div>
+
+          {/* Courses Grid */}
+          {courses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {courses.map((course) => (
+                <SingleCourse
+                  key={course.id}
+                  course={course}
+                  isFavorite={favorites.includes(course.id)}
+                  onToggleFavorite={() => handleToggleFavorite(course.id)}
+                  onSubscribe={() => handleSubscribeToCourse(course.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-gray-500 text-lg mb-4">لا توجد كورسات متوفرة حالياً</div>
+              <p className="text-gray-400">جرب تغيير معايير البحث</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 };

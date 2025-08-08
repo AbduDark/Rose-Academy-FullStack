@@ -37,9 +37,18 @@ function Login() {
           state: { email: formData.email, message: result.data.message } 
         });
       } else {
-        // التوجه للصفحة المطلوبة أو الصفحة الرئيسية
-        const from = location.state?.from?.pathname || '/';
-        navigate(from);
+        // التوجه بناءً على دور المستخدم
+        const userRole = result.user?.role || result.data.user?.role;
+        
+        if (userRole === 'admin') {
+          navigate('/admin');
+        } else if (userRole === 'student') {
+          navigate('/courses');
+        } else {
+          // التوجه للصفحة المطلوبة أو الصفحة الرئيسية
+          const from = location.state?.from?.pathname || '/';
+          navigate(from);
+        }
       }
     } else {
       setError(result.error);

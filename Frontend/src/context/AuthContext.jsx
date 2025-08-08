@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', data.token);
         setToken(data.token);
         setUser(data.user);
-        return { success: true, data };
+        return { success: true, data, user: data.user };
       } else {
         return { success: false, error: data.message || 'Login failed' };
       }

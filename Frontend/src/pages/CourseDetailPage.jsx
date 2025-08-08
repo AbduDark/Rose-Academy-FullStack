@@ -1,79 +1,216 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { coursesAPI, commentsAPI, favoritesAPI } from "../services/api";
 import HeaderCourse from "../components/courses/HeaderCourse";
 import OverviewCourse from "../components/courses/OverviewCourse";
 import InstructorCourse from "../components/courses/InstructorCourse";
-import ReviewCourse from "../components/courses/ReviewCorse";
+import ReviewCorse from "../components/courses/ReviewCorse";
 import EnrollCourse from "../components/courses/EnrollCourse";
 
 const CourseDetailPage = () => {
-  const [tabValue, setTabValue] = useState(0);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+  const [course, setCourse] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
-  const handleTabChange = (newValue) => {
-    setTabValue(newValue);
+  // جلب تفاصيل الكورس
+  const fetchCourse = async () => {
+    try {
+      const result = await coursesAPI.getCourse(id);
+      if (result.success) {
+        setCourse(result.data);
+        setIsSubscribed(result.data.is_subscribed || false);
+        setIsFavorite(result.data.is_favorite || false);
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      setError('حدث خطأ في جلب تفاصيل الكورس');
+    }
   };
 
+  // جلب التعليقات
+  const fetchComments = async () => {
+    try {
+      const result = await commentsAPI.getCourseComments(id);
+      if (result.success) {
+        setComments(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchCourse(), fetchComments()]);
+      setLoading(false);
+    };
+
+    if (id) {
+      loadData();
+    }
+  }, [id]);
+
+  // التعامل مع الاشتراك/إلغاء الاشتراك
+  const handleSubscriptionToggle = async () => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      let result;
+      if (isSubscribed) {
+        result = await coursesAPI.unsubscribeFromCourse(id);
+      } else {
+        result = await coursesAPI.subscribeToCourse(id);
+      }
+
+      if (result.success) {
+        setIsSubscribed(!isSubscribed);
+        alert(isSubscribed ? 'تم إلغاء الاشتراك' : 'تم الاشتراك بنجاح');
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+      alert('حدث خطأ أثناء تنفيذ العملية');
+    }
+  };
+
+  // التعامل مع المفضلات
+  const handleFavoriteToggle = async () => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      let result;
+      if (isFavorite) {
+        result = await favoritesAPI.removeFromFavorites(id);
+      } else {
+        result = await favoritesAPI.addToFavorites(id);
+      }
+
+      if (result.success) {
+        setIsFavorite(!isFavorite);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  // إضافة تعليق
+  const handleAddComment = async (content) => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      const result = await commentsAPI.addComment(id, content);
+      if (result.success) {
+        await fetchComments(); // تحديث التعليقات
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+      alert('حدث خطأ أثناء إضافة التعليق');
+    }
+  };
+
+  // تقييم الكورس
+  const handleRateCourse = async (rating) => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+
+    try {
+      const result = await coursesAPI.rateCourse(id, rating);
+      if (result.success) {
+        await fetchCourse(); // تحديث تفاصيل الكورس
+        alert('تم إضافة التقييم بنجاح');
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+      alert('حدث خطأ أثناء إضافة التقييم');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">الكورس غير موجود</h2>
+          <button
+            onClick={() => navigate('/courses')}
+            className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+          >
+            العودة للكورسات
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gray-50 min-h-screen ">
-      <HeaderCourse />
-      {/* PAGE CONTENT */}
-      <div className="py-12 -mt-12 md:-mt-16 lg:-mt-24 xl:-mt-32">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* MAIN CONTENT */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                {/* TABS */}
-                <div className="border-b border-gray-200">
-                  <div className="flex overflow-x-auto">
-                    <button
-                      onClick={() => handleTabChange(0)}
-                      className={`px-6 py-4 font-medium ${
-                        tabValue === 0
-                          ? "text-pink-600 border-b-2 border-pink-600"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      Overview
-                    </button>
-                    <button
-                      onClick={() => handleTabChange(1)}
-                      className={`px-6 py-4 font-medium ${
-                        tabValue === 1
-                          ? "text-pink-600 border-b-2 border-pink-600"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      Instructor
-                    </button>
-                    <button
-                      onClick={() => handleTabChange(2)}
-                      className={`px-6 py-4 font-medium ${
-                        tabValue === 2
-                          ? "text-pink-600 border-b-2 border-pink-600"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                    >
-                      Reviews
-                    </button>
-                  </div>
-                </div>
-
-                {/* TAB CONTENT */}
-                <div className="p-6">
-                  {/* OVERVIEW TAB */}
-                  {tabValue === 0 && <OverviewCourse />}
-
-                  {/* INSTRUCTOR TAB */}
-                  {tabValue === 1 && <InstructorCourse />}
-
-                  {/* REVIEWS TAB */}
-                  {tabValue === 2 && <ReviewCourse />}
-                </div>
-              </div>
-            </div>
-
-            {/* SIDEBAR */}
-            <EnrollCourse />
+    <div className="bg-gray-50 min-h-screen">
+      <HeaderCourse 
+        course={course} 
+        isSubscribed={isSubscribed}
+        isFavorite={isFavorite}
+        onSubscriptionToggle={handleSubscriptionToggle}
+        onFavoriteToggle={handleFavoriteToggle}
+      />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <OverviewCourse course={course} />
+            <InstructorCourse course={course} />
+            <ReviewCorse 
+              comments={comments}
+              course={course}
+              onAddComment={handleAddComment}
+              onRateCourse={handleRateCourse}
+            />
+          </div>
+          
+          <div className="lg:col-span-1">
+            <EnrollCourse 
+              course={course}
+              isSubscribed={isSubscribed}
+              onSubscriptionToggle={handleSubscriptionToggle}
+            />
           </div>
         </div>
       </div>

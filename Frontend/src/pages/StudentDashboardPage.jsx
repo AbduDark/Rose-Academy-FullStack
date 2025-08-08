@@ -8,37 +8,154 @@ import {
 } from "react-icons/fi";
 import DeleteAccount from "../components/user/DeleteAccount";
 
-const StudentDashboardPage = () => {
-  const [userData] = useState({
-    name: "Mohamed Gomaa",
-    email: "mohamed.gomaa@example.com",
-    phone: "+1234567890",
-    specialty: "Computer Science",
-    years: "3rd Year",
-    section: "A",
-    image: "https://randomuser.me/api/portraits/men/1.jpg",
-  });
+import { coursesAPI, favoritesAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { FiHeart } from "react-icons/fi";
 
+const StudentDashboardPage = () => {
+  const { user } = useAuth();
+  const [myCourses, setMyCourses] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [menuOpen, setMenuOpen] = useState(true);
   const [activeTab, setActiveTab] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // جلب الكورسات المشترك فيها
+  const fetchMyCourses = async () => {
+    try {
+      const result = await coursesAPI.getMyCourses();
+      if (result.success) {
+        setMyCourses(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching my courses:', error);
+    }
+  };
+
+  // جلب المفضلات
+  const fetchFavorites = async () => {
+    try {
+      const result = await favoritesAPI.getFavorites();
+      if (result.success) {
+        setFavorites(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyCourses();
+    fetchFavorites();
+  }, []);
+
+  // مكون عرض الكورسات المشترك فيها
+  const MyCoursesComponent = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">كورساتي</h2>
+      {myCourses.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {myCourses.map((subscription) => (
+            <div key={subscription.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <img
+                src={subscription.course.image || '/placeholder.jpg'}
+                alt={subscription.course.title}
+                className="w-full h-48 object-cover"
+              />
+              <div className="p-4">
+                <h3 className="text-xl font-semibold mb-2">{subscription.course.title}</h3>
+                <p className="text-gray-600 text-sm mb-4">{subscription.course.description?.substring(0, 100)}...</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-green-600 font-medium">مشترك</span>
+                  <Link
+                    to={`/course/${subscription.course.id}`}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  >
+                    عرض الكورس
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <p className="text-gray-500 mb-4">لم تشترك في أي كورس بعد</p>
+          <Link
+            to="/courses"
+            className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+          >
+            تصفح الكورسات
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+
+  // مكون عرض المفضلات
+  const FavoritesComponent = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">المفضلة</h2>
+      {favorites.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {favorites.map((favorite) => (
+            <div key={favorite.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <img
+                src={favorite.course.image || '/placeholder.jpg'}
+                alt={favorite.course.title}
+                className="w-full h-48 object-cover"
+              />
+              <div className="p-4">
+                <h3 className="text-xl font-semibold mb-2">{favorite.course.title}</h3>
+                <p className="text-gray-600 text-sm mb-4">{favorite.course.description?.substring(0, 100)}...</p>
+                <Link
+                  to={`/course/${favorite.course.id}`}
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  عرض الكورس
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <p className="text-gray-500 mb-4">لا توجد كورسات في المفضلة</p>
+          <Link
+            to="/courses"
+            className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+          >
+            تصفح الكورسات
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+
   const menuItems = [
     {
       id: 1,
-      label: "Courses",
+      label: "كورساتي",
       icon: <FiVideo className="w-5 h-5" />,
-      component: <h1>My Courses</h1>,
+      component: <MyCoursesComponent />,
+    },
+    {
+      id: 2,
+      label: "المفضلة",
+      icon: <FiHeart className="w-5 h-5" />,
+      component: <FavoritesComponent />,
     },
     {
       id: 6,
-      label: "Edit Profile",
+      label: "تعديل الملف الشخصي",
       icon: <FiEdit className="w-5 h-5" />,
-      component: <h1>My Courses</h1>,
+      component: <div>قريباً...</div>,
     },
     {
       id: 7,
-      label: "Delete Account",
+      label: "حذف الحساب",
       icon: <FiTrash2 className="w-5 h-5" />,
       component: <DeleteAccount />,
     },
